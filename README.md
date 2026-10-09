@@ -80,9 +80,7 @@ The project includes:
 
 The primary evaluation objective is the asymmetric business cost:
 
-\[
-\text{Cost} = 5 \times FN + FP
-\]
+Cost = 5 * FN + FP
 
 where:
 
