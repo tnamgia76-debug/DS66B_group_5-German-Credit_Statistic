@@ -1,5 +1,19 @@
-streamlit==1.64.0
-pandas==2.3.3
+# Target Python version: 3.13 (matches the project notebook).
+
+# Data processing and statistical tests
 numpy==2.2.3
+pandas==2.3.3
+scipy==1.18.1
+
+# Machine learning and saved model artifacts
 scikit-learn==1.7.2
 joblib==1.5.2
+
+# Notebook charts
+matplotlib==3.11.2
+
+# Web application
+streamlit==1.64.0
+
+# Jupyter notebook kernel (including VS Code)
+ipykernel==7.4.0
