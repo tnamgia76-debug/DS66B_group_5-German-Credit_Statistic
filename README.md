@@ -68,7 +68,7 @@ The project includes:
 - Hyperparameter search
 - Cost-sensitive threshold optimization
 - Nested Cross-Validation
-- EDA-based feature-set comparison
+- Leakage-safe correlation / association-based feature selection
 - Historical benchmark evaluation
 - Competition prediction
 - Streamlit deployment
@@ -153,7 +153,7 @@ Evaluate on benchmark
         |
 NO further tuning
         |
-Refit frozen rule on all 800
+Refit frozen Top_14 procedure on all 800
         |
 Predict 200 competition rows
         |
@@ -263,47 +263,54 @@ Therefore, threshold selection is treated as part of model selection.
 
 # 8. Feature Selection Strategy
 
-Four predeclared EDA-based feature strategies are compared:
+Feature selection is treated as a learned part of the modelling procedure rather than a one-time manual drop based on EDA.
 
-| Strategy | Number of Features | Dropped Features |
-|---|---:|---|
-| `Full_20` | 20 | None |
-| `Drop_2` | 18 | `telephone`, `people_liable` |
-| `Drop_4` | 16 | `telephone`, `people_liable`, `other_debtors`, `job` |
-| `Drop_6` | 14 | `telephone`, `people_liable`, `other_debtors`, `job`, `housing`, `property` |
+The project uses target-association ranking:
 
-The feature set itself is treated as a model-selection choice.
+- **Numerical predictors:** absolute Point-Biserial Correlation with `bad_credit`
+- **Categorical predictors:** Cramér's V association with `bad_credit`
 
-The Inner CV therefore selects a complete prediction rule consisting of:
+Four predefined feature-count strategies are evaluated:
 
-```text
-Feature Set
-+
-Model Family
-+
-Hyperparameters
-+
-Classification Threshold
-```
+| Strategy | Number of Features |
+|---|---:|
+| `Top_20` | 20 |
+| `Top_18` | 18 |
+| `Top_16` | 16 |
+| `Top_14` | 14 |
+
+The important leakage-control rule is that the actual feature ranking is recalculated **only from the training portion of each CV fold**. Validation observations are never used to rank or select predictors.
+
+Therefore, `Top_14` means "retain the 14 highest-ranked predictors learned from the current training data"; it does **not** refer to one hard-coded list of 14 variables across all folds.
 
 ### Nested-CV comparison
 
 The saved project run produced:
 
 ```text
-Full-20 baseline Nested-CV cost      : 391
-Feature-selection Nested-CV cost     : 393
+Full-20 baseline Nested-CV total cost : 391
+Leakage-safe feature-selection cost   : 372
 ```
 
-This means feature-set selection did **not** improve the Outer-CV cost in this run.
+Normalized by the 640 Development observations:
 
-The two procedures performed similarly, while the final full-development search was still allowed to select a simpler reduced-feature rule.
+```text
+Full-20 baseline       : 0.6109 cost / applicant
+Feature-selection      : 0.5813 cost / applicant
+```
 
----
+or approximately:
+
+```text
+Full-20 baseline       : 61.09 cost / 100 applicants
+Feature-selection      : 58.13 cost / 100 applicants
+```
+
+In this run, the leakage-safe feature-selection procedure improved the Outer-CV business-cost estimate relative to the Full-20 baseline.
 
 # 9. Nested Cross-Validation
 
-The development set contains 640 observations.
+The Development set contains 640 observations.
 
 ## Outer CV
 
@@ -316,16 +323,26 @@ Outer Training   = 512 rows
 Outer Validation = 128 rows
 ```
 
-The Outer Validation set is kept untouched while the complete prediction rule is selected.
+The Outer Validation fold is kept untouched while the complete prediction rule is selected.
 
 ## Inner CV
 
 Each 512-row Outer Training set is evaluated using **3-fold Stratified Cross-Validation**.
 
-For each candidate:
+For every Inner fold:
+
+1. Association scores are calculated using only the Inner Training rows.
+2. The requested `Top_k` feature strategy is applied.
+3. Preprocessing is fitted only on those Inner Training rows.
+4. The candidate model is trained.
+5. Probabilities are generated for the Inner Validation rows.
+
+For each candidate strategy/model configuration:
 
 ```text
 3 Inner folds
+      |
+Fold-wise feature ranking
       |
 OOF probabilities for all 512 rows
       |
@@ -336,104 +353,108 @@ Inner business cost
 
 The candidate with the lowest Inner-CV cost is selected.
 
-It is then:
+The winning rule specifies:
 
-1. Rebuilt from scratch
-2. Fitted on all 512 Outer Training observations
-3. Evaluated on the untouched 128-row Outer Validation set
+```text
+Feature-count strategy
++
+Model family
++
+Hyperparameters
++
+Classification threshold
+```
+
+The winning feature-count strategy is then refitted on the complete 512-row Outer Training set to determine the predictor names for that Outer fold. A fresh model is fitted on those 512 observations and evaluated on the untouched 128-row Outer Validation fold.
 
 This process is repeated across all five Outer folds.
 
-The combined Outer predictions estimate the performance of the **selection procedure**, rather than the performance of one fixed model.
+The combined Outer predictions estimate the performance of the **complete selection procedure**, rather than the performance of one fixed model.
 
----
+> **Inner CV selects. Outer CV evaluates.**
 
 # 10. Final Model
 
-After Nested Cross-Validation is completed, the same selection rule is applied to all 640 development observations.
+After Nested Cross-Validation evaluates the selection procedure, the same 3-fold selection rule is applied to all 640 Development observations.
 
 The final selected rule is:
 
 | Component | Selected Value |
 |---|---|
-| Feature strategy | `Drop_6` |
+| Feature strategy | `Top_14` |
 | Number of features | 14 |
 | Model | Logistic Regression |
 | `C` | `0.1` |
 | `class_weight` | `balanced` |
-| Classification threshold | `0.39` |
-| Final-search selection cost | `318` |
+| Classification threshold | `0.41` |
+| Final-search selection cost | `325` |
+| Final-search average cost | `0.5078` per applicant |
 
-The 14 selected features are:
+After `Top_14` was selected, association scores were recalculated on the complete 640-row Development dataset. The 14 Development-stage predictors were:
 
 ```text
 status
-duration
 credit_history
+duration
 purpose
-amount
 savings
 employment_duration
-installment_rate
+amount
+housing
+property
 personal_status_sex
-present_residence
-age
 other_installment_plans
-number_credits
-foreign_worker
+age
+job
+installment_rate
 ```
 
 Important:
 
-> The final-search cost of `318` is a **selection criterion**, not an unbiased test-performance estimate.
+> The final-search cost of `325` is a **selection criterion**, not an unbiased estimate of generalization performance.
 
-The unbiased procedure-level evaluation comes from the Outer CV.
+The procedure-level out-of-sample estimate comes from the Outer Nested CV:
 
----
+```text
+Outer-CV total cost            : 372
+Average cost per applicant     : 0.58125
+Cost per 100 applicants        : 58.125
+```
 
 # 11. Benchmark Results
 
-Once the final rule was frozen, it was fitted on the 640 development observations and evaluated on the 160-row historical benchmark.
+Once the final rule was frozen, it was fitted on the 640 Development observations and evaluated on the 160-row Historical Benchmark.
 
-## Confusion Matrix
+The benchmark is diagnostic only and is not used to change the feature strategy, model family, hyperparameters, classification threshold, or random seed.
 
-|  | Predicted Good | Predicted Bad |
-|---|---:|---:|
-| Actual Good | 68 | 52 |
-| Actual Bad | 10 | 30 |
+## Business-cost comparison
 
-Therefore:
+The updated frozen rule produced:
+
+| Evaluation | N | Total Cost | Average Cost per Applicant | Cost per 100 Applicants |
+|---|---:|---:|---:|---:|
+| Nested CV Outer | 640 | 372 | **0.58125** | **58.125** |
+| Historical Benchmark | 160 | 99 | **0.61875** | **61.875** |
+
+Total cost should not be compared directly between these datasets because the sample sizes differ.
+
+The normalized benchmark cost is therefore compared with the normalized Outer-CV estimate:
 
 ```text
-TN = 68
-FP = 52
-FN = 10
-TP = 30
+Nested CV Outer       : 0.58125 cost / applicant
+Historical Benchmark  : 0.61875 cost / applicant
+Difference             : 0.03750 cost / applicant
 ```
 
-## Metrics
+Equivalently, the Historical Benchmark is approximately **3.75 cost units per 100 applicants** higher than the Nested-CV estimate.
 
-| Metric | Result |
-|---|---:|
-| Business Cost | **102** |
-| Accuracy | 0.6125 |
-| Precision — Bad | 0.3659 |
-| Recall — Bad | **0.7500** |
-| ROC-AUC | 0.7296 |
-| Average Precision | 0.5055 |
-| Brier Score | 0.1969 |
+The benchmark result is reasonably consistent with the Nested-CV estimate, while still showing the expected variation on a separate 160-row diagnostic set.
 
-The model identified **75% of the actual Bad-credit cases**.
-
-The relatively high number of False Positives reflects the asymmetric project objective: reducing False Negatives is prioritized because each FN carries five times the cost of an FP.
-
-No model, feature set or threshold is changed after this benchmark evaluation.
-
----
+No further tuning is performed after this benchmark evaluation.
 
 # 12. Competition Submission
 
-After the benchmark diagnostic step, the development and benchmark datasets are combined:
+After the benchmark diagnostic step, the Development and Historical Benchmark datasets are combined:
 
 ```text
 640 Development
@@ -443,9 +464,19 @@ After the benchmark diagnostic step, the development and benchmark datasets are 
 800 labeled observations
 ```
 
-The frozen final rule is then refitted on all 800 labeled observations.
+The already-selected modelling rule remains frozen:
 
-Predictions are generated for the 200 unlabeled competition rows.
+```text
+Feature strategy : Top_14
+Model            : Logistic Regression
+C                : 0.1
+class_weight     : balanced
+Threshold        : 0.41
+```
+
+The `Top_14` ranking procedure is then refitted on all 800 labeled observations. This may produce a different set of predictor names from the 14 predictors selected on the 640-row Development data, but the number of predictors and the modelling rule are not retuned.
+
+A fresh final pipeline is fitted on all 800 labeled observations and used to generate predictions for the 200 unlabeled Competition rows.
 
 ## Label conversion
 
@@ -469,32 +500,15 @@ Therefore:
 competition_kredit = 1 - competition_pred
 ```
 
-The final submission schema is:
+The generated submission contains:
 
 ```text
-Id,kredit
+200 rows
+2 columns: Id, kredit
+0 missing values
 ```
 
-### Kaggle leaderboard
-
-The submitted model received:
-
-```text
-Public score  : 0.70
-Private score : 0.60
-```
-
-These leaderboard scores are reported separately from the project's business-cost objective.
-
-The modelling pipeline was designed to minimize:
-
-\[
-5 \times FN + FP
-\]
-
-rather than to directly maximize the external competition score.
-
----
+Competition leaderboard results are treated separately from the project's business-cost objective. They are not used to return to model, feature, or threshold tuning.
 
 # 13. Streamlit Application
 
@@ -515,10 +529,10 @@ A user can enter one applicant's information and receive:
 - Final decision threshold
 - Visual risk indicator
 
-The deployed app applies the same final threshold:
+The deployed app applies the same frozen final threshold:
 
 ```text
-0.39
+0.41
 ```
 
 ### Batch Prediction
@@ -561,6 +575,8 @@ artifacts/
 ```text
 model_name
 params
+feature_strategy
+n_features
 features
 threshold
 numeric_features
@@ -734,11 +750,46 @@ When the GitHub repository is updated, the Streamlit application can automatical
 
 Several rules are used throughout the project to reduce data leakage and optimistic evaluation.
 
+## Data split
+
+The 800 labeled observations are split first into:
+
+```text
+640 Development
+160 Historical Benchmark
+```
+
+using a fixed stratified split.
+
+Feature selection, preprocessing design, model selection, and threshold selection are performed without using the Historical Benchmark.
+
 ## Preprocessing
 
 Scalers, imputers and encoders are fitted only on training folds.
 
-Validation observations are transformed using rules learned from training data.
+Validation observations are transformed using rules learned from the corresponding training data.
+
+## Feature selection
+
+Target-aware feature selection is also fitted only on training data.
+
+Within each CV training fold:
+
+```text
+Training rows
+      |
+Point-Biserial / Cramér's V ranking
+      |
+Top-k feature selection
+      |
+Preprocessing
+      |
+Model fitting
+```
+
+The corresponding validation rows do not participate in feature ranking.
+
+The actual predictor names can therefore differ between folds even when the same strategy, such as `Top_14`, is evaluated.
 
 ## Threshold selection
 
@@ -750,31 +801,31 @@ Outer Validation labels are never used to select thresholds.
 
 The Outer Validation data is used only after the complete Inner-CV rule has been selected.
 
-## Feature selection
-
-The feature strategies are predefined before evaluating the feature-selection Nested-CV procedure.
-
-Outer-fold results are not used to redesign the feature sets.
-
 ## Historical benchmark
 
-The 160-row historical benchmark is used only after the final rule has been frozen.
+The 160-row Historical Benchmark is used only after the final Development-stage rule has been frozen.
 
 The benchmark result does not trigger:
 
-- feature changes
+- feature-strategy changes
 - model changes
 - parameter changes
 - threshold changes
 - random-seed changes
 
+## Final 800-row refit
+
+After benchmark evaluation is complete, the 640 Development and 160 Benchmark rows are combined.
+
+The already-selected `Top_14` strategy is refitted on all 800 labeled observations to determine the final deployment predictors.
+
+This is a final refit, not a new model-selection step: `Top_14`, Logistic Regression, `C = 0.1`, `class_weight = balanced`, and threshold `0.41` remain frozen.
+
 ## Competition data
 
 Competition labels are not available to the training pipeline.
 
-Leaderboard results are treated as external evaluation information rather than as part of the model-selection loop.
-
----
+Competition or leaderboard results are treated as external evaluation information rather than as part of the model-selection loop.
 
 # 19. Limitations
 
