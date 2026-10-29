@@ -270,6 +270,8 @@ The project uses target-association ranking:
 - **Numerical predictors:** absolute Point-Biserial Correlation with `bad_credit`
 - **Categorical predictors:** Cramér's V association with `bad_credit`
 
+Because Point-Biserial correlation and Cramér's V are different association statistics, their numerical magnitudes are used here as a pragmatic ranking heuristic rather than interpreted as directly equivalent effect sizes.
+
 Four predefined feature-count strategies are evaluated:
 
 | Strategy | Number of Features |
@@ -289,7 +291,7 @@ The saved project run produced:
 
 ```text
 Full-20 baseline Nested-CV total cost : 391
-Leakage-safe feature-selection cost   : 372
+Fold-wise feature-selection cost      : 372
 ```
 
 Normalized by the 640 Development observations:
@@ -448,7 +450,22 @@ Difference             : 0.03750 cost / applicant
 
 Equivalently, the Historical Benchmark is approximately **3.75 cost units per 100 applicants** higher than the Nested-CV estimate.
 
-The benchmark result is reasonably consistent with the Nested-CV estimate, while still showing the expected variation on a separate 160-row diagnostic set.
+The benchmark result is reasonably consistent with the Nested-CV estimate in terms of normalized business cost, while still showing variation on the separate 160-row diagnostic set.
+
+## Probability Diagnostics
+
+Probability quality was also examined using calibration analysis and the Brier Score.
+
+| Evaluation | Model Brier | Simple Prior Brier |
+|---|---:|---:|
+| Nested OOF 640 | **0.1647** | 0.1875 |
+| Historical Benchmark 160 | **0.1973** | 0.1875 |
+
+The Nested-CV OOF probabilities outperform the simple prior-probability baseline, while the Historical Benchmark Brier Score is slightly worse than the baseline.
+
+This suggests that the final decision rule remains useful for the project's asymmetric business-cost objective, but probability calibration is less stable on the Historical Benchmark.
+
+Calibration and Brier diagnostics are descriptive only and do not alter the frozen model, feature strategy, or decision threshold.
 
 No further tuning is performed after this benchmark evaluation.
 
@@ -478,6 +495,32 @@ The `Top_14` ranking procedure is then refitted on all 800 labeled observations.
 
 A fresh final pipeline is fitted on all 800 labeled observations and used to generate predictions for the 200 unlabeled Competition rows.
 
+### Final Deployment Feature Set
+
+After refitting the selected `Top_14` association-ranking procedure on all 800 labeled observations, the deployment predictors are:
+
+```text
+status
+credit_history
+duration
+purpose
+savings
+employment_duration
+amount
+housing
+property
+personal_status_sex
+other_installment_plans
+age
+foreign_worker
+installment_rate
+```
+
+The deployment feature set differs slightly from the 640-row Development feature set: `foreign_worker` enters the final Top-14 ranking while `job` is no longer retained.
+
+This is expected because the feature-count strategy is frozen, while the exact predictor ranking is legitimately relearned using all labeled observations during the final deployment refit.
+
+
 ## Label conversion
 
 The internal model target is:
@@ -506,6 +549,8 @@ The generated submission contains:
 200 rows
 2 columns: Id, kredit
 0 missing values
+73 predicted Good
+127 predicted Bad
 ```
 
 Competition leaderboard results are treated separately from the project's business-cost objective. They are not used to return to model, feature, or threshold tuning.
@@ -761,7 +806,7 @@ The 800 labeled observations are split first into:
 
 using a fixed stratified split.
 
-Feature selection, preprocessing design, model selection, and threshold selection are performed without using the Historical Benchmark.
+Feature selection, fitted preprocessing parameters, model selection, and threshold selection are learned without using the Historical Benchmark.
 
 ## Preprocessing
 
