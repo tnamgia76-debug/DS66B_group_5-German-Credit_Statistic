@@ -1,0 +1,38 @@
+Feature Strategy,Number of Features,Model,Params,Threshold,TN,FP,FN,TP,Cost
+Full_20,20,Logistic Regression,"{'C': 0.1, 'class_weight': 'balanced'}",0.37,266,214,23,137,329
+Full_20,20,Gradient Boosting,"{'learning_rate': 0.05, 'max_depth': 2}",0.18,265,215,24,136,335
+Full_20,20,Logistic Regression,"{'C': 1, 'class_weight': 'balanced'}",0.33,293,187,30,130,337
+Full_20,20,Logistic Regression,"{'C': 0.1, 'class_weight': None}",0.18,257,223,23,137,338
+Full_20,20,Gradient Boosting,"{'learning_rate': 0.1, 'max_depth': 1}",0.19,259,221,24,136,341
+Full_20,20,Random Forest,"{'max_depth': None, 'min_samples_leaf': 10}",0.23,259,221,24,136,341
+Full_20,20,Logistic Regression,"{'C': 1, 'class_weight': None}",0.09,223,257,17,143,342
+Full_20,20,Logistic Regression,"{'C': 10, 'class_weight': None}",0.08,242,238,21,139,343
+Full_20,20,Gradient Boosting,"{'learning_rate': 0.1, 'max_depth': 2}",0.15,262,218,25,135,343
+Full_20,20,Random Forest,"{'max_depth': 5, 'min_samples_leaf': 3}",0.21,242,238,21,139,343
+Full_20,20,RBF SVM,"{'C': 10, 'gamma': 0.01}",0.22,312,168,35,125,343
+Full_20,20,RBF SVM,"{'C': 0.1, 'gamma': 0.01}",0.24,330,150,39,121,345
+Full_20,20,RBF SVM,"{'C': 1, 'gamma': 0.01}",0.24,328,152,39,121,347
+Full_20,20,RBF SVM,"{'C': 0.1, 'gamma': 'scale'}",0.16,247,233,23,137,348
+Full_20,20,Gradient Boosting,"{'learning_rate': 0.05, 'max_depth': 1}",0.18,217,263,17,143,348
+Full_20,20,Random Forest,"{'max_depth': 5, 'min_samples_leaf': 10}",0.26,321,159,38,122,349
+Full_20,20,RBF SVM,"{'C': 1, 'gamma': 'scale'}",0.16,245,235,23,137,350
+Full_20,20,Logistic Regression,"{'C': 10, 'class_weight': 'balanced'}",0.18,240,240,22,138,350
+Full_20,20,Decision Tree,"{'max_depth': 3, 'min_samples_leaf': 15}",0.16,217,263,18,142,353
+Full_20,20,Extra Trees,"{'max_depth': 5, 'min_samples_leaf': 10}",0.19,206,274,16,144,354
+Full_20,20,Gaussian Naive Bayes,{'var_smoothing': 0.001},0.41,283,197,32,128,357
+Full_20,20,Extra Trees,"{'max_depth': None, 'min_samples_leaf': 10}",0.2,242,238,24,136,358
+Full_20,20,RBF SVM,"{'C': 10, 'gamma': 'scale'}",0.16,245,235,25,135,360
+Full_20,20,Extra Trees,"{'max_depth': 5, 'min_samples_leaf': 3}",0.19,215,265,19,141,360
+Full_20,20,Random Forest,"{'max_depth': None, 'min_samples_leaf': 3}",0.18,211,269,19,141,364
+Full_20,20,Extra Trees,"{'max_depth': None, 'min_samples_leaf': 3}",0.27,331,149,43,117,364
+Full_20,20,Decision Tree,"{'max_depth': 3, 'min_samples_leaf': 5}",0.17,219,261,21,139,366
+Full_20,20,KNN,"{'n_neighbors': 15, 'weights': 'distance'}",0.19,241,239,27,133,374
+Full_20,20,KNN,"{'n_neighbors': 31, 'weights': 'distance'}",0.16,205,275,20,140,375
+Full_20,20,KNN,"{'n_neighbors': 15, 'weights': 'uniform'}",0.07,154,326,11,149,381
+Full_20,20,KNN,"{'n_neighbors': 31, 'weights': 'uniform'}",0.17,232,248,27,133,383
+Full_20,20,Decision Tree,"{'max_depth': 6, 'min_samples_leaf': 15}",0.11,214,266,24,136,386
+Full_20,20,Decision Tree,"{'max_depth': 6, 'min_samples_leaf': 5}",0.04,240,240,32,128,400
+Full_20,20,KNN,"{'n_neighbors': 5, 'weights': 'distance'}",0.18,210,270,31,129,425
+Full_20,20,KNN,"{'n_neighbors': 5, 'weights': 'uniform'}",0.01,197,283,30,130,433
+Full_20,20,Gaussian Naive Bayes,{'var_smoothing': 1e-09},0.99,113,367,14,146,437
+Full_20,20,Dummy,{},0.01,0,480,0,160,480

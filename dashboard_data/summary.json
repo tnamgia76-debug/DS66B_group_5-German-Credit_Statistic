@@ -1,0 +1,50 @@
+{
+  "n_development": 640,
+  "n_benchmark": 160,
+  "n_competition": 200,
+  "full20_nested_cost": 391,
+  "topk_nested_cost": 372,
+  "final_strategy": "Top_14",
+  "final_model_name": "Logistic Regression",
+  "final_params": {
+    "C": 0.1,
+    "class_weight": "balanced"
+  },
+  "final_threshold": 0.41,
+  "final_selection_cost": 325,
+  "features_640": [
+    "status",
+    "credit_history",
+    "duration",
+    "purpose",
+    "savings",
+    "employment_duration",
+    "amount",
+    "housing",
+    "property",
+    "personal_status_sex",
+    "other_installment_plans",
+    "age",
+    "job",
+    "installment_rate"
+  ],
+  "deployment_features_800": [
+    "status",
+    "credit_history",
+    "purpose",
+    "duration",
+    "savings",
+    "property",
+    "employment_duration",
+    "housing",
+    "amount",
+    "other_installment_plans",
+    "age",
+    "installment_rate",
+    "foreign_worker",
+    "personal_status_sex"
+  ],
+  "benchmark_cost": 99,
+  "deployment_threshold": 0.41,
+  "provenance": "Regenerated from fixed project splits, notebook CV design, and saved deployment artifact."
+}
