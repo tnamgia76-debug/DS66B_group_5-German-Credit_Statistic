@@ -15,6 +15,6 @@ def build_extra_trees(
             max_depth=max_depth,
             min_samples_leaf=min_samples_leaf,
             random_state=42,
-            n_jobs=-1
+            n_jobs=1
         ))
     ])
